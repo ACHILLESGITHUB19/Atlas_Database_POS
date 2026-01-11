@@ -142,8 +142,8 @@ let orderType = null;
 let currentCategory = 'all';
 let selectedPaymentMethod = null;
 
+/* ===================== PRODUCT CATALOG ===================== */
 const productCatalog = [
-  // Rice Bowl Meals
   { name: 'Korean Spicy Bulgogi (Pork)', price: 158, category: 'Rice', image: 'korean_spicy_bulgogi.png' },
   { name: 'Korean Salt and Pepper (Pork)', price: 158, category: 'Rice', image: 'korean_salt_pepper_pork.png' },
   { name: 'Crispy Pork Lechon Kawali', price: 158, category: 'Rice', image: 'lechon_kawali.png' },
@@ -228,118 +228,41 @@ const productCatalog = [
   { name: 'Special Bulalo Buy 1 Take 1 (good for 6-8 Persons)', price: 18, category: 'Specialties', image: 'Special_Bulalo_buy1_take1.png' }
 ];
 
-// MAIN RENDER FUNCTION - FIXED
+/* ===================== MENU ===================== */
 function renderMenu() {
   const container = document.getElementById('menuContainer');
   if (!container) return;
-  
   container.innerHTML = '';
-  
-  const filteredProducts = currentCategory === 'all'
+
+  const items = currentCategory === 'all'
     ? productCatalog
-    : productCatalog.filter(item => item.category === currentCategory);
-  
-  if (filteredProducts.length === 0) {
-    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #666; padding: 20px;">No items available</p>';
-    return;
-  }
-  
-  // Create compact product cards in grid
-  filteredProducts.forEach(product => {
-    const productCard = document.createElement('div');
-    productCard.className = 'compact-product-card';
-    
-    // Create image
-    const img = document.createElement('img');
-    img.src = `/images/${product.image}`;
-    img.alt = product.name;
-    img.onerror = function() {
-      this.src = '/images';
-      this.onerror = null; // Prevent infinite loop
-    };
-    
-    // Create product name
-    const name = document.createElement('div');
-    name.className = 'compact-product-name';
-    name.textContent = product.name;
-    
-    // Create price
-    const price = document.createElement('div');
-    price.className = 'compact-product-price';
-    price.textContent = `₱${product.price}`;
-    
-    // Add click event
-    productCard.onclick = () => addItemToOrder(product.name, product.price);
-    
-    // Append elements
-    productCard.appendChild(img);
-    productCard.appendChild(name);
-    productCard.appendChild(price);
-    
-    container.appendChild(productCard);
+    : productCatalog.filter(p => p.category === currentCategory);
+
+  items.forEach(product => {
+    const card = document.createElement('div');
+    card.className = 'compact-product-card';
+    card.onclick = () => addItemToOrder(product.name, product.price);
+
+    card.innerHTML = `
+      <img src="/images/${product.image}" onerror="this.src='/images/default_food.jpg'" />
+      <div class="compact-product-name">${product.name}</div>
+      <div class="compact-product-price">₱${product.price}</div>
+    `;
+    container.appendChild(card);
   });
 }
 
-function initCategoryButtons() {
-  const buttons = document.querySelectorAll('.category-btn');
-  buttons.forEach(btn => {
-    btn.onclick = function() {
-      const category = this.getAttribute('data-category');
-      filterCategory(category);
-    };
-  });
-}
-
-function filterCategory(category) {
-  currentCategory = category;
-  
-  const buttons = document.querySelectorAll('.category-btn');
-  buttons.forEach(btn => {
-    btn.classList.remove('active');
-  });
-  
-  const activeBtn = document.querySelector(`[data-category="${category}"]`);
-  if (activeBtn) {
-    activeBtn.classList.add('active');
-  }
-  
-  renderMenu();
-}
-
-function searchFood(value) {
-  value = value.toLowerCase().trim();
-  
-  const productCards = document.querySelectorAll('#menuContainer .compact-product-card');
-  
-  productCards.forEach(card => {
-    const itemText = card.textContent.toLowerCase();
-    card.style.display = itemText.includes(value) ? '' : 'none';
-  });
-}
-
+/* ===================== ORDER ===================== */
 function addItemToOrder(name, price) {
-  const existingItem = currentOrder.find(item => item.name === name);
-  
-  if (existingItem) {
-    existingItem.quantity++;
-  } else {
-    currentOrder.push({ 
-      name: name, 
-      price: price, 
-      quantity: 1 
-    });
-  }
-  
+  const item = currentOrder.find(i => i.name === name);
+  item ? item.quantity++ : currentOrder.push({ name, price, quantity: 1 });
   renderOrder();
 }
 
 function removeItemFromOrder(index) {
-  if (currentOrder[index].quantity > 1) {
-    currentOrder[index].quantity--;
-  } else {
-    currentOrder.splice(index, 1);
-  }
-  
+  currentOrder[index].quantity > 1
+    ? currentOrder[index].quantity--
+    : currentOrder.splice(index, 1);
   renderOrder();
 }
 
@@ -348,441 +271,499 @@ function renderOrder() {
   const subtotalEl = document.getElementById('subtotal');
   const taxEl = document.getElementById('tax');
   const totalEl = document.getElementById('totals');
-  
-  if (!list || !subtotalEl || !taxEl || !totalEl) return;
-  
+
+  if (!list) return;
+
   list.innerHTML = '';
-  
   let subtotal = 0;
-  
+
   currentOrder.forEach((item, index) => {
-    const itemTotal = item.price * item.quantity;
-    subtotal += itemTotal;
-    
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <span>${item.name} x${item.quantity}</span>
-      <span>₱${itemTotal.toFixed(2)}</span>
-      <button onclick="removeItemFromOrder(${index})" class="remove-btn">✕</button>
-    `;
-    list.appendChild(li);
+    const total = item.price * item.quantity;
+    subtotal += total;
+
+    list.innerHTML += `
+      <li>
+        <span>${item.name} x${item.quantity}</span>
+        <span>₱${total.toFixed(2)}</span>
+        <button onclick="removeItemFromOrder(${index})">✕</button>
+      </li>`;
   });
-  
+
   const tax = subtotal * 0.10;
-  const total = subtotal + tax;
-  
-  subtotalEl.textContent = subtotal.toFixed(2);
-  taxEl.textContent = tax.toFixed(2);
-  totalEl.textContent = total.toFixed(2);
+  if (subtotalEl) subtotalEl.textContent = subtotal.toFixed(2);
+  if (taxEl) taxEl.textContent = tax.toFixed(2);
+  if (totalEl) totalEl.textContent = (subtotal + tax).toFixed(2);
 }
 
+/* ===================== CATEGORY FILTER ===================== */
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll('.category-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      // Get category from data attribute
+      const category = button.getAttribute('data-category');
+      
+      // Update current category
+      currentCategory = category;
+      
+      // Render the menu for the selected category
+      renderMenu();
+      
+      // Update active button highlighting
+      document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+    });
+  });
+});
+
+/* ===================== ORDER TYPE ===================== */
 function setDineIn() {
   orderType = "Dine In";
-  document.getElementById("orderTypeDisplay").textContent = orderType;
+  const display = document.getElementById("orderTypeDisplay");
+  if (display) display.textContent = orderType;
 }
 
 function setTakeout() {
   orderType = "Take Out";
-  document.getElementById("orderTypeDisplay").textContent = orderType;
+  const display = document.getElementById("orderTypeDisplay");
+  if (display) display.textContent = orderType;
 }
 
-function Payment() {
-  if (!currentOrder.length) { 
-    return; 
+/* ===================== PAYMENT METHOD ===================== */
+function selectPaymentMethod(method) {
+  selectedPaymentMethod = method;
+  
+  // Update button states
+  const buttons = document.querySelectorAll('.paymentmethod-btn');
+  buttons.forEach(btn => btn.classList.remove('active'));
+  
+  // Highlight selected button
+  const selectedBtn = document.getElementById(`${method}-btn`);
+  if (selectedBtn) {
+    selectedBtn.classList.add('active');
   }
-  if (!orderType) {
-    alert('Please select order type (Dine In or Take Out)!');
+  
+  // Update display based on selected method
+  updatePaymentDisplay(method);
+  
+  // Update payment method display text
+  const displayElement = document.getElementById("paymentMethodDisplay");
+  if (displayElement) {
+    // Format the display text nicely
+    let displayText = "";
+    switch(method) {
+      case 'paymaya': displayText = "PayMaya"; break;
+      case 'gcash': displayText = "GCash"; break;
+      default: displayText = "Not selected";
+    }
+    displayElement.textContent = displayText;
+  }
+}
+
+function updatePaymentDisplay(method) {
+  const display = document.getElementById('payment-display');
+  if (!display) return;
+  
+  switch(method) {
+    case 'paymaya':
+      display.innerHTML = getPayMayaHTML();
+      break;
+    case 'gcash':
+      display.innerHTML = getGCashHTML();
+      break;
+    default:
+      display.innerHTML = getDefaultHTML();
+  }
+}
+
+function getPayMayaHTML() {
+  // Generate a random QR code identifier for demo purposes
+  const qrId = Math.random().toString(36).substring(2, 15);
+  const total = parseFloat(document.getElementById('totals')?.textContent || '0');
+  
+  // Generate QR code URL for PayMaya
+  const qrData = `paymaya://payment?amount=${total}&ref=${qrId}&merchant=Restaurant`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
+  
+  return `
+    <h2 style="color: #0056D6; margin-bottom: 20px;">
+      <i class="fas fa-mobile-alt"></i> Pay with PayMaya
+    </h2>
+    
+    <div class="payment-info">
+      <p style="color: #4a5568; margin-bottom: 20px; background: #f7fafc; padding: 15px; border-radius: 8px;">
+        <i class="fas fa-info-circle"></i> Scan the QR code below using your PayMaya app to complete payment
+      </p>
+    </div>
+    
+    <div class="qr-container">
+      <div class="qr-code">
+        <div class="qr-placeholder" style="padding: 20px; background: white; border: 2px solid #0056D6; border-radius: 10px; text-align: center;">
+          <img src="${qrCodeUrl}" alt="PayMaya QR Code" style="width: 180px; height: 180px; margin-bottom: 10px;" />
+          <div style="font-family: monospace; font-size: 12px; color: #666; margin-bottom: 10px;">
+            Transaction ID: ${qrId}
+          </div>
+          <div style="font-weight: 600; color: #0056D6; font-size: 14px;">PAYMAYA QR CODE</div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin: 25px 0;">
+      <div style="font-weight: 600; color: #2d3748; margin-bottom: 10px; font-size: 16px;">How to Pay:</div>
+      <ol style="text-align: left; display: inline-block; color: #4a5568; padding-left: 20px;">
+        <li style="margin-bottom: 8px;">Open the PayMaya app on your phone</li>
+        <li style="margin-bottom: 8px;">Tap "Scan QR" from the home screen</li>
+        <li style="margin-bottom: 8px;">Point your camera at this QR code</li>
+        <li style="margin-bottom: 8px;">Enter the amount shown below and confirm payment</li>
+      </ol>
+    </div>
+    
+    <div class="account-number" style="background: #0056D6; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+      <div style="font-weight: 600; margin-bottom: 5px;">Mobile Number:</div>
+      <div style="font-size: 18px; letter-spacing: 1px;">0917 123 4567</div>
+    </div>
+    
+    <div class="payment-amount" style="background: #f0fff4; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; border: 1px solid #c6f6d5;">
+      <div style="font-weight: 600; color: #2d3748; margin-bottom: 5px;">Amount to Pay:</div>
+      <div style="font-size: 24px; font-weight: bold; color: #38a169;">₱${total.toFixed(2)}</div>
+    </div>
+    
+    <p class="payment-instruction" style="text-align: center;">
+      <i class="fas fa-clock" style="color: #ed8936;"></i> This QR code will expire in 15 minutes
+    </p>
+    
+    <button class="paymentmethod-btn" onclick="processEwalletPayment('PayMaya')" 
+            style="width: 100%; margin-top: 20px; background: #0056D6; border-color: #0056D6; color: white; padding: 15px; font-size: 16px;">
+      <i class="fas fa-check-circle"></i> Confirm PayMaya Payment
+    </button>
+  `;
+}
+
+function getGCashHTML() {
+  // Generate a random QR code identifier for demo purposes
+  const qrId = Math.random().toString(36).substring(2, 15);
+  const total = parseFloat(document.getElementById('totals')?.textContent || '0');
+  
+  // Generate QR code URL for GCash
+  const qrData = `gcash://payment?amount=${total}&ref=${qrId}&merchant=Restaurant`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
+  
+  return `
+    <h2 style="color: #00457D; margin-bottom: 20px;">
+      <i class="fas fa-wallet"></i> Pay with GCash
+    </h2>
+    
+    <div class="payment-info">
+      <p style="color: #4a5568; margin-bottom: 20px; background: #f7fafc; padding: 15px; border-radius: 8px;">
+        <i class="fas fa-info-circle"></i> Scan the QR code below using your GCash app to complete payment
+      </p>
+    </div>
+    
+    <div class="qr-container">
+      <div class="qr-code">
+        <div class="qr-placeholder" style="padding: 20px; background: white; border: 2px solid #00457D; border-radius: 10px; text-align: center;">
+          <img src="${qrCodeUrl}" alt="GCash QR Code" style="width: 180px; height: 180px; margin-bottom: 10px;" />
+          <div style="font-family: monospace; font-size: 12px; color: #666; margin-bottom: 10px;">
+            Transaction ID: ${qrId}
+          </div>
+          <div style="font-weight: 600; color: #00457D; font-size: 14px;">GCASH QR CODE</div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin: 25px 0;">
+      <div style="font-weight: 600; color: #2d3748; margin-bottom: 10px; font-size: 16px;">How to Pay:</div>
+      <ol style="text-align: left; display: inline-block; color: #4a5568; padding-left: 20px;">
+        <li style="margin-bottom: 8px;">Open the GCash app on your phone</li>
+        <li style="margin-bottom: 8px;">Tap "Scan QR" from the dashboard</li>
+        <li style="margin-bottom: 8px;">Point your camera at this QR code</li>
+        <li style="margin-bottom: 8px;">Enter your MPIN to confirm payment</li>
+      </ol>
+    </div>
+    
+    <div class="account-number" style="background: linear-gradient(135deg, #00457D, #0066CC); color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+      <div style="font-weight: 600; margin-bottom: 5px;">Mobile Number:</div>
+      <div style="font-size: 18px; letter-spacing: 1px;">0917 765 4321</div>
+    </div>
+    
+    <div class="payment-amount" style="background: #f0fff4; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; border: 1px solid #c6f6d5;">
+      <div style="font-weight: 600; color: #2d3748; margin-bottom: 5px;">Amount to Pay:</div>
+      <div style="font-size: 24px; font-weight: bold; color: #38a169;">₱${total.toFixed(2)}</div>
+    </div>
+    
+    <p class="payment-instruction" style="text-align: center;">
+      <i class="fas fa-check-circle" style="color: #38a169;"></i> Instant payment confirmation upon scanning
+    </p>
+    
+    <button class="paymentmethod-btn" onclick="processEwalletPayment('GCash')" 
+            style="width: 100%; margin-top: 20px; background: #00457D; border-color: #00457D; color: white; padding: 15px; font-size: 16px;">
+      <i class="fas fa-check-circle"></i> Confirm GCash Payment
+    </button>
+  `;
+}
+
+function getDefaultHTML() {
+  return `
+    <div class="payment-placeholder" style="text-align: center; padding: 40px 20px;">
+      <i class="fas fa-wallet" style="font-size: 48px; color: #667eea; margin-bottom: 20px;"></i>
+      <h3 style="color: #4a5568; margin-bottom: 10px;">Select a Payment Method</h3>
+      <p class="payment-instruction" style="color: #718096;">Click on GCash or PayMaya above to proceed with your payment</p>
+    </div>
+  `;
+}
+
+function processEwalletPayment(method) {
+  const total = parseFloat(document.getElementById('totals')?.textContent || '0');
+  
+  if (total <= 0) {
+    alert('Please add items to your order first');
     return;
   }
+  
+  alert(`Processing ${method} payment for ₱${total.toFixed(2)}...\n\nPlease scan the QR code using your ${method} app to complete the transaction.`);
+}
 
-  const orderItems = currentOrder.map(item => ({
-    name: item.name,
-    price: item.price,
-    quantity: item.quantity
-  }));
-
-  const subtotal = currentOrder.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const tax = parseFloat((subtotal * 0.10).toFixed(2));
-  const total = parseFloat((subtotal + tax).toFixed(2));
-
+/* ===================== PAYMENT ===================== */
+function Payment() {
+  if (!currentOrder.length) return alert("Add items first");
+  if (!orderType) return alert("Select order type");
+  if (!selectedPaymentMethod) return alert("Select payment method (GCash or PayMaya)");
+  
+  // Calculate totals
+  const subtotal = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const tax = subtotal * 0.10;
+  const total = subtotal + tax;
+  
+  // Get customer info if available
+  const customerName = document.getElementById('customerName')?.value || "Guest";
+  const customerPhone = document.getElementById('customerPhone')?.value || "N/A";
+  
   const orderData = {
-    items: orderItems,
+    items: currentOrder,
     subtotal: subtotal,
     tax: tax,
     total: total,
     type: orderType,
+    paymentMethod: selectedPaymentMethod,
     customer: {
-      name: "Guest",
-      phone: "N/A"
+      name: customerName,
+      phone: customerPhone
     }
   };
 
-  // Disable button during processing
-  const payBtn = document.querySelector('.pay-btn');
-  payBtn.disabled = true;
-  payBtn.textContent = "Processing...";
+  console.log('Sending order data:', orderData);
+
+  // Show loading/processing indicator
+  const paymentBtn = document.querySelector('#payment-btn');
+  const originalText = paymentBtn ? paymentBtn.textContent : 'Pay';
+  if (paymentBtn) {
+    paymentBtn.disabled = true;
+    paymentBtn.textContent = 'Processing...';
+  }
 
   fetch('/api/orders', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(orderData)
   })
-  .then(response => response.json())
+  .then(res => {
+    if (!res.ok) {
+      return res.json().then(err => { 
+        throw new Error(err.message || `HTTP ${res.status}`); 
+      });
+    }
+    return res.json();
+  })
   .then(result => {
-    // Re-enable button first
-    payBtn.disabled = false;
-    payBtn.textContent = "Pay";
-
+    console.log('Payment response:', result);
     if (result.success) {
-      const confirmPrint = confirm('Order submitted successfully! Print receipt?');
-      if (confirmPrint) {
-        printReceipt();
-      }
-      
-      currentOrder = [];
-      orderType = null;
-      renderOrder();
-      document.getElementById("orderTypeDisplay").textContent = "None";
-      
-      alert('Payment processed successfully!');
+      handleSuccessfulPayment(result);
     } else {
-      console.error('Order failed:', result.message);
-      alert('Order failed: ' + result.message);
+      alert("Payment failed: " + (result.message || "Unknown error"));
     }
   })
   .catch(error => {
-    // Re-enable button on error
-    payBtn.disabled = false;
-    payBtn.textContent = "Pay";
-    
-    console.error('Error:', error);
-    alert('Error processing payment. Please try again.');
+    console.error('Payment error:', error);
+    alert("Payment failed: " + error.message);
+  })
+  .finally(() => {
+    // Reset button state
+    if (paymentBtn) {
+      paymentBtn.disabled = false;
+      paymentBtn.textContent = originalText;
+    }
   });
 }
 
-function setPaymentMethod(method) {
-  selectedPaymentMethod = method; // store selection
-  document.getElementById("selectedPaymentMethod").textContent = method; // update UI
-
-  // Remove 'active' class from all buttons
-  const buttons = document.querySelectorAll('.payment-method-btn');
-  buttons.forEach(btn => btn.classList.remove('active'));
-
-  // Add 'active' class to clicked button
-  const activeBtn = Array.from(buttons).find(btn => btn.textContent === method);
-  if(activeBtn) activeBtn.classList.add('active');
+/* ===================== SUCCESS ===================== */
+async function handleSuccessfulPayment(result) {
+  // Format payment method for display
+  let paymentMethodDisplay = "";
+  switch(selectedPaymentMethod) {
+    case 'paymaya': paymentMethodDisplay = "PayMaya"; break;
+    case 'gcash': paymentMethodDisplay = "GCash"; break;
+    default: paymentMethodDisplay = selectedPaymentMethod || "Unknown";
+  }
+  
+  // Show success message with payment method
+  alert(`Payment successful via ${paymentMethodDisplay}! Order #${result.orderId || ''}\n\nPlease scan the QR code on your ${paymentMethodDisplay} app to complete the transaction.`);
+  
+  await printReceipt();
+  
+  // Reset everything after successful payment
+  currentOrder = [];
+  orderType = null;
+  selectedPaymentMethod = null;
+  renderOrder();
+  
+  // Update displays
+  const orderTypeDisplay = document.getElementById("orderTypeDisplay");
+  if (orderTypeDisplay) orderTypeDisplay.textContent = "None";
+  
+  const paymentMethodDisplayEl = document.getElementById("paymentMethodDisplay");
+  if (paymentMethodDisplayEl) paymentMethodDisplayEl.textContent = "Not selected";
+  
+  // Clear customer info if fields exist
+  const customerNameInput = document.getElementById('customerName');
+  const customerPhoneInput = document.getElementById('customerPhone');
+  if (customerNameInput) customerNameInput.value = '';
+  if (customerPhoneInput) customerPhoneInput.value = '';
+  
+  // Clear active payment button
+  document.querySelectorAll('.paymentmethod-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Reset payment display
+  const paymentDisplay = document.getElementById('payment-display');
+  if (paymentDisplay) updatePaymentDisplay(null);
+  
+  // Update stats display if on admin dashboard
+  if (typeof updateStatsDisplay === 'function') {
+    updateStatsDisplay();
+  }
 }
 
+/* ===================== RECEIPT ===================== */
 function printReceipt() {
-  return new Promise((resolve, reject) => {
-    if (!currentOrder.length) {
-      alert('No items in order!');
-      return;
+  return new Promise(resolve => {
+    const subtotal = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const tax = subtotal * 0.10;
+    const total = subtotal + tax;
+    
+    // Format payment method for receipt
+    let paymentMethodDisplay = "";
+    let qrCodeUrl = "";
+    
+    switch(selectedPaymentMethod) {
+      case 'paymaya': 
+        paymentMethodDisplay = "PayMaya";
+        const paymayaQrId = Math.random().toString(36).substring(2, 15);
+        const paymayaQrData = `paymaya://payment?amount=${total}&ref=${paymayaQrId}&merchant=Restaurant`;
+        qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(paymayaQrData)}`;
+        break;
+      case 'gcash': 
+        paymentMethodDisplay = "GCash";
+        const gcashQrId = Math.random().toString(36).substring(2, 15);
+        const gcashQrData = `gcash://payment?amount=${total}&ref=${gcashQrId}&merchant=Restaurant`;
+        qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(gcashQrData)}`;
+        break;
+      default: 
+        paymentMethodDisplay = selectedPaymentMethod || "Unknown";
     }
     
-    if (!orderType) {
-      alert('Please select order type!');
-      return;
-    }
-
-    let subtotal = 0;
-    const itemsHtml = currentOrder.map(item => {
-      const itemTotal = item.price * item.quantity;
-      subtotal += itemTotal;
-      const name = item.name.length > 24 ? 
-        `${item.name.substring(0, 22)}...` : item.name;
-      
-      return `
-        <tr>
-          <td style="text-align: left; padding: 2px 0; font-size: 10px; max-width: 140px; word-wrap: break-word;">
-            ${name}
-          </td>
-          <td style="text-align: center; padding: 2px 0; font-size: 10px; font-weight: bold; width: 20px;">
-            x${item.quantity}
-          </td>
-          <td style="text-align: right; padding: 2px 0; font-size: 10px; width: 60px;">
-            ₱${itemTotal.toFixed(2)}
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    const tax = parseFloat((subtotal * 0.10).toFixed(2));
-    const total = parseFloat((subtotal + tax).toFixed(2));
-
-    const receiptId = 'RCPT' + Date.now().toString().slice(-6);
-    
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-PH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-    const timeStr = now.toLocaleTimeString('en-PH', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-
-    const printWindow = window.open('', '_blank', 'width=350,height=600');
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
+    const win = window.open('', '', 'width=400,height=700');
+    win.document.write(`
       <html>
-      <head>
-        <title>Receipt</title>
-        <meta charset="UTF-8">
-        <style>
-          @page {
-            size: 80mm auto;
-            margin: 0;
-            margin-top: 5mm;
-            margin-bottom: 5mm;
-          }
-          
-          @media print {
-            html, body {
-              width: 80mm !important;
-              min-width: 80mm !important;
-              max-width: 80mm !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              overflow: hidden !important;
+        <head>
+          <title>Receipt</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h3 { text-align: center; color: #333; }
+            .receipt-item { display: flex; justify-content: space-between; margin: 5px 0; }
+            .total { font-weight: bold; border-top: 1px solid #333; padding-top: 10px; }
+            .payment-method { 
+              background: #f0f0f0; 
+              padding: 10px; 
+              border-radius: 5px; 
+              margin: 10px 0;
+              text-align: center;
             }
-            
-            body {
-              font-size: 10px !important;
-              line-height: 1 !important;
+            .qr-code-container {
+              text-align: center;
+              margin: 20px 0;
+              padding: 15px;
+              border: 1px dashed #ccc;
+              border-radius: 10px;
             }
-            
-            .no-print {
-              display: none !important;
+            .qr-code-img {
+              width: 150px;
+              height: 150px;
+              margin: 10px auto;
             }
-            
-            .receipt-container {
-              page-break-inside: avoid;
-              page-break-after: avoid;
-              page-break-before: avoid;
-            }
-          }
-          
-          body {
-            font-family: 'Courier New', monospace, monospace;
-            font-size: 10px;
-            line-height: 1;
-            margin: 0;
-            padding: 0;
-            width: 80mm;
-            min-width: 80mm;
-            max-width: 80mm;
-            background: white;
-            color: black;
-          }
-          
-          .receipt-container {
-            width: 80mm;
-            min-width: 80mm;
-            max-width: 80mm;
-            padding: 5mm;
-            box-sizing: border-box;
-            margin: 0 auto;
-            background: white;
-          }
-          
-          .header {
-            text-align: center;
-            margin-bottom: 3mm;
-          }
-          
-          .shop-name {
-            font-size: 11px;
-            font-weight: bold;
-            margin: 1mm 0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-          
-          .shop-details {
-            font-size: 9px;
-            margin: 0.5mm 0;
-            line-height: 1.1;
-          }
-          
-          .separator {
-            border-top: 1px dashed #000;
-            margin: 2mm 0;
-            width: 100%;
-          }
-          
-          .order-info {
-            text-align: center;
-            margin: 2mm 0;
-          }
-          
-          .receipt-title {
-            font-size: 10px;
-            font-weight: bold;
-            margin: 1mm 0;
-            text-transform: uppercase;
-          }
-          
-          .order-details {
-            font-size: 9px;
-            margin: 0.5mm 0;
-            line-height: 1.1;
-          }
-          
-          .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 2mm 0;
-            table-layout: fixed;
-          }
-          
-          .items-table td {
-            padding: 1px 0;
-            vertical-align: top;
-            line-height: 1.1;
-          }
-          
-          .item-name-col {
-            width: 45mm;
-            max-width: 45mm;
-            text-align: left;
-            word-wrap: break-word;
-            font-size: 9px;
-          }
-          
-          .item-qty-col {
-            width: 8mm;
-            text-align: center;
-            font-weight: bold;
-            font-size: 9px;
-          }
-          
-          .item-price-col {
-            width: 17mm;
-            text-align: right;
-            font-size: 9px;
-          }
-          
-          .totals-section {
-            margin-top: 3mm;
-          }
-          
-          .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 0.5mm 0;
-            font-size: 9px;
-          }
-          
-          .grand-total {
-            display: flex;
-            justify-content: space-between;
-            margin: 1mm 0;
-            padding-top: 1mm;
-            border-top: 2px solid #000;
-            font-size: 11px;
-            font-weight: bold;
-          }
-          
-          .footer {
-            text-align: center;
-            margin-top: 3mm;
-            font-size: 8px;
-            border-top: 1px dashed #000;
-            padding-top: 2mm;
-            line-height: 1.1;
-          }
-          
-          .thank-you {
-            font-weight: bold;
-            margin: 1mm 0;
-          }
-          
-          .footer-text {
-            margin: 0.5mm 0;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="receipt-container">
-          <div class="header">
-            <div class="shop-name">G'RAY COUNTRYSIDE CAFE</div>
-            <div class="shop-details">Est. 2018</div>
-            <div class="shop-details">Contact: 0997-4600154</div>
-            <div class="separator"></div>
+          </style>
+        </head>
+        <body>
+          <h3>PAYMENT RECEIPT</h3>
+          <p><strong>Order Type:</strong> ${orderType || 'N/A'}</p>
+          <div class="payment-method">
+            <strong>Payment Method:</strong> ${paymentMethodDisplay}
           </div>
           
-          <div class="order-info">
-            <div class="receipt-title">order receipt</div>
-            <div class="order-details">Type: ${orderType}</div>
-            <div class="order-details">${dateStr} ${timeStr}</div>
-            <div class="order-details">ID: ${receiptId}</div>
-            <div class="separator"></div>
-          </div>
-          
-          <table class="items-table">
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-          
-          <div class="separator"></div>
-          
-          <div class="totals-section">
-            <div class="total-row">
-              <span>Subtotal:</span>
-              <span>₱${subtotal.toFixed(2)}</span>
+          ${qrCodeUrl ? `
+          <div class="qr-code-container">
+            <strong>Scan to Pay with ${paymentMethodDisplay}</strong>
+            <div class="qr-code-img">
+              <img src="${qrCodeUrl}" alt="${paymentMethodDisplay} QR Code" style="width: 150px; height: 150px;" />
             </div>
-            <div class="total-row">
-              <span>Tax (10%):</span>
-              <span>₱${tax.toFixed(2)}</span>
-            </div>
-            <div class="grand-total">
-              <span>TOTAL:</span>
-              <span>₱${total.toFixed(2)}</span>
-            </div>
+            <p style="font-size: 12px; color: #666;">
+              Open ${paymentMethodDisplay} app → Scan QR → Enter amount
+            </p>
           </div>
+          ` : ''}
           
-          <div class="separator"></div>
-          
-          <div class="footer">
-            <div class="thank-you">Thank you for your order!</div>
-            <div class="footer-text">Please come again</div>
-            <div class="footer-text">*** For school purposes only ***</div>
+          <hr>
+          ${currentOrder.map(item => `
+            <div class="receipt-item">
+              <span>${item.name} x${item.quantity}</span>
+              <span>₱${(item.price * item.quantity).toFixed(2)}</span>
+            </div>
+          `).join('')}
+          <hr>
+          <div class="receipt-item">
+            <span>Subtotal:</span>
+            <span>₱${subtotal.toFixed(2)}</span>
           </div>
-        </div>
-        
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.focus();
-              window.print();
-              
-              setTimeout(function() {
-                window.close();
-              }, 1000);
-            }, 300);
-          };
-        <\/script>
-      </body>
+          <div class="receipt-item">
+            <span>Tax (10%):</span>
+            <span>₱${tax.toFixed(2)}</span>
+          </div>
+          <div class="receipt-item total">
+            <span>Total:</span>
+            <span>₱${total.toFixed(2)}</span>
+          </div>
+          <p style="text-align: center; margin-top: 20px; font-style: italic;">
+            Thank you for your order!<br>
+            Payment to be completed via ${paymentMethodDisplay}
+          </p>
+          <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #888;">
+            ${new Date().toLocaleString()}
+          </div>
+        </body>
       </html>
     `);
-    
-    printWindow.document.close();
-    resolve("Receipt printed successfully");
+    win.document.close();
+    win.print();
+    win.close();
+    resolve();
   });
 }
 
-// Initialize when page loads
+/* ===================== INIT ===================== */
 document.addEventListener("DOMContentLoaded", () => {
-  initCategoryButtons();
   renderMenu();
   renderOrder();
+  // Initialize with GCash selected by default
+  selectPaymentMethod('gcash');
 });
 </script>
 
