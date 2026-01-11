@@ -140,6 +140,8 @@
 let currentOrder = [];
 let orderType = null;
 let currentCategory = 'all';
+let selectedPaymentMethod = null;
+
 const productCatalog = [
   // Rice Bowl Meals
   { name: 'Korean Spicy Bulgogi (Pork)', price: 158, category: 'Rice', image: 'korean_spicy_bulgogi.png' },
@@ -458,6 +460,19 @@ function Payment() {
     console.error('Error:', error);
     alert('Error processing payment. Please try again.');
   });
+}
+
+function setPaymentMethod(method) {
+  selectedPaymentMethod = method; // store selection
+  document.getElementById("selectedPaymentMethod").textContent = method; // update UI
+
+  // Remove 'active' class from all buttons
+  const buttons = document.querySelectorAll('.payment-method-btn');
+  buttons.forEach(btn => btn.classList.remove('active'));
+
+  // Add 'active' class to clicked button
+  const activeBtn = Array.from(buttons).find(btn => btn.textContent === method);
+  if(activeBtn) activeBtn.classList.add('active');
 }
 
 function printReceipt() {
