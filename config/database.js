@@ -108,7 +108,8 @@ const orderSchema = new mongoose.Schema({
   subtotal: Number,
   tax: Number,
   total: Number,
-  type: String, 
+  type: String,
+  paymentMethod: selectedPaymentMethod,
   customer: {
     name: {
       type: String,
