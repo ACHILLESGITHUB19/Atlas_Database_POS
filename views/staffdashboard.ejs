@@ -66,6 +66,7 @@
 <div class="product">
   <h3>Products</h3>
  
+  <p>Payment Type: <span id="paymentMethodDisplay">Not selected</span></p>
   <p>Order Type: <span id="orderTypeDisplay">None</span></p>
   <ul id="productlist"></ul>
 
@@ -85,7 +86,15 @@
   </div>
    <button class="pay-btn" onclick="Payment()">Pay</button>
 </div>
- 
+ <div class="payment-method">
+          <p>Select Payment Method:</p>
+          <button class="payment-method-btn" onclick="setPaymentMethod('GCash')">GCash</button>
+          <button class="payment-method-btn" onclick="setPaymentMethod('Paymaya')">Pay Maya</button>
+        <button class="pay-btn" onclick="Payment()">Pay</button>
+      </div>
+    </div>
+  </div>
+</div>
 </div>
 <div id="receipt" style="display: none;">
   <div style="text-align: center; margin-bottom: 15px;">
